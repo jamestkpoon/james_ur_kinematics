@@ -41,7 +41,6 @@ void jangs_to_vrep(std::vector<double>& vec, const int nr)
     for(int c=0; c<6; c++)
       { vec[i] -= vrep_joint_offsets[c]; i++; }
       
-  for(int j=0; j<vec.size(); j++) printf("%f ", vec[j]);    
   normalize_angles(vec);
 }
 
