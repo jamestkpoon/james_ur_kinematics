@@ -13,11 +13,13 @@ rospy.init_node('ur_kin_test_node', anonymous=True)
 ik_svc_ = rospy.ServiceProxy('/ur5_kin/IK', IK)
 fk_svc_ = rospy.ServiceProxy('/ur5_kin/FK', FK)
 
-jang_pub_ = rospy.Publisher('/vrep/ur5/joint_command', Float32MultiArray, queue_size=1)
-gripper_pub_ = rospy.Publisher('/vrep/ur5/gripper_command', Bool, queue_size=1)
+jang_pub_ = rospy.Publisher('/vrep/ur5/command/joint_positions', Float32MultiArray, queue_size=1)
+gripper_pub_ = rospy.Publisher('/vrep/ur5/command/gripper', Bool, queue_size=1)
 ur_mov_timeout_ = 0.5; ur_mov_param_ = '/vrep/ur5/moving'
 
 sleep(1.0)
+
+### useful functions
 
 def test_fk(ik_req):
     ik_jangs_ = ik_svc_(ik_req).joint_angles
@@ -50,6 +52,8 @@ def gripper_close():
     
 def gripper_open():
     gripper_pub_.publish(Bool(data=False)); sleep(0.1)
+    
+### peg insert test script
 
 ik_req_ = IKRequest()
 ik_req_.ee_pose.position.x = 0.8
