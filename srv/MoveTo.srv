@@ -1,0 +1,3 @@
+float64[] ur_state
+bool gripper_state
+---

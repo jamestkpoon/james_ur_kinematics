@@ -60,6 +60,7 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    FK.srv
    IK.srv
+   MoveTo.srv
  )
 
 ## Generate actions in the 'action' folder
