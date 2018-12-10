@@ -22,8 +22,7 @@ class MoveTo_node():
         
     def _m2_cb(self, req):
         # disambiguate requested ur_state
-        if (len(req.ur_state) == 6): jangs_ = req.ur_state
-        elif (len(req.ur_state) == 7):
+        if (len(req.ur_state) == 7):
             # pose 7-tuple; take first soln from IK
             ik_req_ = IKRequest()
             ik_req_.ee_pose.position.x = req.ur_state[0]
@@ -34,10 +33,11 @@ class MoveTo_node():
             ik_req_.ee_pose.orientation.z = req.ur_state[5]
             ik_req_.ee_pose.orientation.w = req.ur_state[6]
             jangs_ = self._ik(ik_req_).joint_angles[:6]
+        elif (len(req.ur_state) > 7): jangs_ = req.ur_state
         else: jangs_ = []
         
-        # move robot
-        if (len(jangs_) == 6):
+        # operate joints
+        if (len(jangs_) > 0):
             self._jang_pub.publish(Float32MultiArray(data=jangs_))
             t_ = time(); mov_ = False
             while ((time()-t_) < self._ur_mov_timeout) and not mov_:
