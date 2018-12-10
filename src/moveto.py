@@ -22,8 +22,9 @@ class MoveTo_node():
         
     def _m2_cb(self, req):
         # disambiguate requested ur_state
-        if (len(req.ur_state) == 7):
-            # pose 7-tuple; take first soln from IK
+        len_ = len(req.ur_state)
+        if (len_ < 6): jangs_ = [] # invalid
+        elif (len_ == 7): # pose 7-tuple; take first soln from IK 
             ik_req_ = IKRequest()
             ik_req_.ee_pose.position.x = req.ur_state[0]
             ik_req_.ee_pose.position.y = req.ur_state[1]
@@ -33,8 +34,7 @@ class MoveTo_node():
             ik_req_.ee_pose.orientation.z = req.ur_state[5]
             ik_req_.ee_pose.orientation.w = req.ur_state[6]
             jangs_ = self._ik(ik_req_).joint_angles[:6]
-        elif (len(req.ur_state) > 7): jangs_ = req.ur_state
-        else: jangs_ = []
+        else jangs_ = req.ur_state
         
         # operate joints
         if (len(jangs_) > 0):
