@@ -10,6 +10,7 @@ class MoveTo_node():
     def __init__(self):
         rospy.init_node('ur_moveto_node', anonymous=True)
         
+        rospy.wait_for_service('/ur5_kin/IK')
         self._ik = rospy.ServiceProxy('/ur5_kin/IK', IK)
         self._jang_pub = rospy.Publisher('/vrep/ur5/command/joint_positions',
             Float32MultiArray, queue_size=1)
@@ -34,7 +35,7 @@ class MoveTo_node():
             ik_req_.ee_pose.orientation.z = req.ur_state[5]
             ik_req_.ee_pose.orientation.w = req.ur_state[6]
             jangs_ = self._ik(ik_req_).joint_angles[:6]
-        else jangs_ = req.ur_state
+        else: jangs_ = req.ur_state
         
         # operate joints
         if (len(jangs_) > 0):
