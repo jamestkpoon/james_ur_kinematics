@@ -11,35 +11,33 @@
 using namespace james_ur_kinematics;
 using namespace Eigen;
 
-//// VREP compatibility
-
-const double vrep_joint_offsets[6] = { M_PI/2, -M_PI/2, 0.0, -M_PI/2, 0.0, M_PI/2 },
-  twopi = 2 * M_PI;
+//// joint angle adjustments for differing 0 position definitions
+std::vector<double> ext_joint_offsets; const double TWOPI = 2 * M_PI;
   
 void normalize_angles(std::vector<double>& vec)
 {
   for(size_t j=0; j<vec.size(); j++)
     if(std::isfinite(vec[j]))
     {
-      while(vec[j] > M_PI) vec[j] -= twopi;
-      while(vec[j] < -M_PI) vec[j] += twopi;
+      while(vec[j] > M_PI) vec[j] -= TWOPI;
+      while(vec[j] < -M_PI) vec[j] += TWOPI;
     }
 }
 
-void jangs_from_vrep(std::vector<double>& out, const std::vector<double>& in)
+void jangs_from_ext(std::vector<double>& out, const std::vector<double>& in)
 {
   for(int i=0; i<6; i++)
-    out[i] = in[i] + vrep_joint_offsets[i];
+    out[i] = in[i] + ext_joint_offsets[i];
   
   normalize_angles(out);
 }
 
-void jangs_to_vrep(std::vector<double>& vec, const int nr)
+void jangs_to_ext(std::vector<double>& vec, const int nr)
 {
   int i = 0;
   for(int r=0; r<nr; r++)
     for(int c=0; c<6; c++)
-      { vec[i] -= vrep_joint_offsets[c]; i++; }
+      { vec[i] -= ext_joint_offsets[c]; i++; }
       
   normalize_angles(vec);
 }
@@ -66,7 +64,7 @@ void get_robot_j6_TF(tf::Transform& rj6_tf, const geometry_msgs::Pose& pose)
 bool fwd_svc(FK::Request& req, FK::Response& res)
 {
   // apply ur_kinematics -> VREP angular origin offsets
-  std::vector<double> jangs_(6); jangs_from_vrep(jangs_, req.joint_angles);
+  std::vector<double> jangs_(6); jangs_from_ext(jangs_, req.joint_angles);
   // get 4x4 affine transformation double[], convert to Eigen matrix
   double M_[16]; ur_kinematics::forward(jangs_.data(), M_);
   Affine3d F_; F_.matrix() = Map<Matrix<double,4,4,RowMajor> >(M_);
@@ -93,7 +91,7 @@ bool inv_svc(IK::Request& req, IK::Response& res)
   if(nsols_ != 0)
   {
     std::copy(&sols_[0],&sols_[nsols_*6], std::back_inserter(res.joint_angles));
-    jangs_to_vrep(res.joint_angles, nsols_);
+    jangs_to_ext(res.joint_angles, nsols_);
   }
   
   return 1;
@@ -102,7 +100,7 @@ bool inv_svc(IK::Request& req, IK::Response& res)
 int main(int argc, char**argv)
 {
   ros::init(argc, argv, "ur5_kin_node");
-  ros::NodeHandle nh_;
+  ros::NodeHandle nh_("~");
   
   // get static transforms for end-effector FK, and their inverses for ee IK
   tf::TransformListener tflr_; ros::Duration(1.0).sleep();
@@ -113,10 +111,28 @@ int main(int argc, char**argv)
   gripper_ee_stf = gripper_rot_adj_.inverse() * gripper_ee_stf_;
   world_robot_istf = world_robot_stf.inverse(); gripper_ee_istf = gripper_ee_stf.inverse();
   
-  ros::ServiceServer fwd_srv_ = nh_.advertiseService("ur5_kin/FK", &fwd_svc),
-    inv_srv_ = nh_.advertiseService("ur5_kin/IK", &inv_svc);  
+  int ext_sw_; nh_.getParam("ext_switch", ext_sw_);
+  switch(ext_sw_)
+  {
+    case 1 : // v-rep
+    {
+      double jofs_[6] = { M_PI/2, -M_PI/2, 0.0, -M_PI/2, 0.0, M_PI/2 };
+      ext_joint_offsets = std::vector<double>(jofs_, jofs_+6);
+      break;
+    }
+    case 2 : // mujoco
+    {
+      double jofs_[6] = { 0.0, M_PI, 0.0, M_PI, 0.0, 0.0 };
+      ext_joint_offsets = std::vector<double>(jofs_, jofs_+6);
+      break;
+    }
+    default: ext_joint_offsets = std::vector<double>(6, 0.0);
+  }
+  
+  ros::ServiceServer fwd_srv_ = nh_.advertiseService("/ur5_kin/FK", &fwd_svc),
+    inv_srv_ = nh_.advertiseService("/ur5_kin/IK", &inv_svc);  
     
-  ros::spin();  
+  ros::spin();
   
   return 0;
 }

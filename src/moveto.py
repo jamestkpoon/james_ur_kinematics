@@ -12,12 +12,12 @@ class MoveTo_node():
         
         rospy.wait_for_service('/ur5_kin/IK')
         self._ik = rospy.ServiceProxy('/ur5_kin/IK', IK)
-        self._jang_pub = rospy.Publisher('/vrep/ur5/command/joint_positions',
+        self._jang_pub = rospy.Publisher('ur5/command/joint_positions',
             Float32MultiArray, queue_size=1)
-        self._gripper_pub = rospy.Publisher('/vrep/ur5/command/gripper', Bool, queue_size=1)
-        sleep(1.0); self._ur_mov_timeout = 0.5; self._ur_mov_param = '/vrep/ur5/moving'
+        self._gripper_pub = rospy.Publisher('ur5/command/gripper', Bool, queue_size=1)
+        sleep(1.0); self._ur_mov_timeout = 0.5; self._ur_mov_param = 'ur5/moving'
         
-        rospy.Service('/vrep/ur5/command/moveTo', MoveTo, self._m2_cb)
+        rospy.Service('ur5/command/moveTo', MoveTo, self._m2_cb)
         
         rospy.spin()
         
@@ -47,7 +47,7 @@ class MoveTo_node():
         
         # operate gripper
         self._gripper_pub.publish(Bool(data=req.gripper_state))
-        if req.gripper_state: sleep(1.0) # closing
+        if req.gripper_state: sleep(2.0) # closing
         else: sleep(0.5) # opening
         
         return []

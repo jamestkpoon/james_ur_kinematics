@@ -4,8 +4,10 @@
     <node pkg="tf" type="static_transform_publisher" name="gripper_ee_tf1" args="0 0 0 -1.5708 -1.5708 0 gripper_link gripper_link_ 100" />
     <node pkg="tf" type="static_transform_publisher" name="gripper_ee_tf2" args="0 0 0.13 1.5708 -1.5708 0 gripper_link gripper_ee 100" />
     
-    <node name="ur5_kin" pkg="james_ur_kinematics" type="ur5_kin_node" output="screen"/>
+    <node name="ur5_kin" pkg="james_ur_kinematics" type="ur5_kin_node" output="screen">
+      <param name="ext_switch" type="int" value="0"/>
+    </node>
     
-    <node name="ur5_moveto" pkg="james_ur_kinematics" type="moveto.py" output="screen"/>
+    <node name="ur5_moveto" pkg="james_ur_kinematics" type="moveto.py" ns="mujoco" output="screen"/>
 
 </launch>
