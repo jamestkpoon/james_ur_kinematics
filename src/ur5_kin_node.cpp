@@ -12,6 +12,7 @@ using namespace james_ur_kinematics;
 using namespace Eigen;
 
 //// joint angle adjustments for differing 0 position definitions
+
 std::vector<double> ext_joint_offsets; const double TWOPI = 2 * M_PI;
   
 void normalize_angles(std::vector<double>& vec)
@@ -117,12 +118,6 @@ int main(int argc, char**argv)
     case 1 : // v-rep
     {
       double jofs_[6] = { M_PI/2, -M_PI/2, 0.0, -M_PI/2, 0.0, M_PI/2 };
-      ext_joint_offsets = std::vector<double>(jofs_, jofs_+6);
-      break;
-    }
-    case 2 : // mujoco
-    {
-      double jofs_[6] = { 0.0, M_PI, 0.0, M_PI, 0.0, 0.0 };
       ext_joint_offsets = std::vector<double>(jofs_, jofs_+6);
       break;
     }
