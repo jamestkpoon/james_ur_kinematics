@@ -28,7 +28,7 @@ void normalize_angles(std::vector<double>& vec)
 void jangs_from_ext(std::vector<double>& out, const std::vector<double>& in)
 {
   for(int i=0; i<6; i++)
-    out[i] = in[i] + ext_joint_offsets[i];
+    out[i] = in[i] - ext_joint_offsets[i];
   
   normalize_angles(out);
 }
@@ -38,7 +38,7 @@ void jangs_to_ext(std::vector<double>& vec, const int nr)
   int i = 0;
   for(int r=0; r<nr; r++)
     for(int c=0; c<6; c++)
-      { vec[i] -= ext_joint_offsets[c]; i++; }
+      { vec[i] += ext_joint_offsets[c]; i++; }
       
   normalize_angles(vec);
 }
@@ -117,7 +117,7 @@ int main(int argc, char**argv)
   {
     case 1 : // v-rep
     {
-      double jofs_[6] = { M_PI/2, -M_PI/2, 0.0, -M_PI/2, 0.0, M_PI/2 };
+      double jofs_[6] = { -M_PI/2, M_PI/2, 0.0, M_PI/2, 0.0, -M_PI/2 };
       ext_joint_offsets = std::vector<double>(jofs_, jofs_+6);
       break;
     }
