@@ -121,6 +121,12 @@ int main(int argc, char**argv)
       ext_joint_offsets = std::vector<double>(jofs_, jofs_+6);
       break;
     }
+    case 2: // real with cable oriented at -PI/4
+    {
+      double jofs_[6] = { M_PI/4, 0.0, 0.0, 0.0, 0.0, 0.0 };
+      ext_joint_offsets = std::vector<double>(jofs_, jofs_+6);
+      break;
+    }
     default: ext_joint_offsets = std::vector<double>(6, 0.0);
   }
   
