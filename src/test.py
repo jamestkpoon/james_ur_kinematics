@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
-import rospy
+import rospy, tf_conversions
 from james_ur_kinematics.srv import *
-from tf.transformations import quaternion_from_euler
+
+quaternion_from_euler = tf_conversions.transformations.quaternion_from_euler
 
 # ros init, moveTo svc
 rospy.init_node('thread_test_node', anonymous=True)

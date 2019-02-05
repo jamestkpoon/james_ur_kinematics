@@ -2,6 +2,7 @@
 
 import rospy
 from james_ur_kinematics.srv import *
+from geometry_msgs.msg import Pose, Point, Quaternion
 from std_msgs.msg import Float32MultiArray, Bool
 
 from control_msgs.msg import FollowJointTrajectoryActionGoal
@@ -41,14 +42,9 @@ class MoveTo_node():
             
             for i in range(n_steps_):
                 # get IK
-                ik_req_ = IKRequest()
-                ik_req_.ee_pose.position.x = req.ur_state[i*6+0]
-                ik_req_.ee_pose.position.y = req.ur_state[i*6+1]
-                ik_req_.ee_pose.position.z = req.ur_state[i*6+2]
-                ik_req_.ee_pose.orientation.x = req.ur_state[i*6+3]
-                ik_req_.ee_pose.orientation.y = req.ur_state[i*6+4]
-                ik_req_.ee_pose.orientation.z = req.ur_state[i*6+5]
-                ik_req_.ee_pose.orientation.w = req.ur_state[i*6+6]
+                sI_ = i*7; pose_ = req.ur_state[sI_:sI_+7]
+                ik_req_ = IKRequest(ee_pose=Pose(
+                    position=Point(*pose_[:3]), orientation=Quaternion(*pose_[3:])))
                 jangs_ = self._ik(ik_req_).joint_angles[:6]                
                 # append
                 goal_msg_.goal.trajectory.points[i].positions = jangs_
