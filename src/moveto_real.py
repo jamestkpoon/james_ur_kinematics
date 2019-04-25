@@ -24,32 +24,41 @@ class MoveTo_node():
             FollowJointTrajectoryActionGoal, queue_size=1)
         self._gripper_pub = rospy.Publisher('ur5/command/gripper', Bool, queue_size=1)
         
-        rospy.Service('ur5/command/moveTo', MoveTo, self._m2_cb)
+        rospy.Service('ur5/command/moveToPoses', MoveTo, self._m2p_cb)
+        rospy.Service('ur5/command/moveToJoints', MoveTo, self._m2j_cb)
         
         sleep(2.0)
         
         rospy.spin()
         
-    def _m2_cb(self, req):
+    def _m2_cb(self, req, req_type):
+        assert (req_type == 'p' or req_type == 'j')
+        
         req_ln_ = len(req.ur_state)
         if req_ln_ > 0:
-            n_steps_ = int((req_ln_-1) / 6)
-            time_per_step_ = req.ur_state[-1] / n_steps_
+            if req_type == 'p': n_steps_ = int((req_ln_-1) / 7) # 7-tuple pose
+            elif req_type == 'j': n_steps_ = int((req_ln_-1) / 6) # 6-tuple joint position
             
+            time_per_step_ = req.ur_state[-1] / n_steps_ # time between each step
+            
+            # create message
             goal_msg_ = FollowJointTrajectoryActionGoal()
             goal_msg_.goal.trajectory.joint_names = JOINT_NAMES
             goal_msg_.goal.trajectory.points = [ JointTrajectoryPoint() ] * n_steps_
             
             for i in range(n_steps_):
-                # get IK
-                sI_ = i*7; pose_ = req.ur_state[sI_:sI_+7]
-                ik_req_ = IKRequest(ee_pose=Pose(
-                    position=Point(*pose_[:3]), orientation=Quaternion(*pose_[3:])))
-                jangs_ = self._ik(ik_req_).joint_angles[:6]                
+                if req_type == 'p': # joint positions from IK
+                    sI_ = i*7; pose_ = req.ur_state[sI_:sI_+7]
+                    ik_req_ = IKRequest(ee_pose=Pose(
+                        position=Point(*pose_[:3]), orientation=Quaternion(*pose_[3:])))
+                    jangs_ = self._ik(ik_req_).joint_angles[:6]
+                elif req_type == 'j': # copy joint positions
+                    sI_ = i*6; jangs_ = req.ur_state[sI_:sI_+6]
+                
                 # append
                 goal_msg_.goal.trajectory.points[i].positions = jangs_
-                tfs_ = (i + 1) * time_per_step_
-                goal_msg_.goal.trajectory.points[0].time_from_start = rospy.Duration(tfs_)
+                tfs_ = rospy.Duration((i + 1) * time_per_step_)
+                goal_msg_.goal.trajectory.points[0].time_from_start = tfs_
                 
             # final state stuff
             goal_msg_.goal.trajectory.points[-1].velocities = [ 0.0 ] * 6
@@ -58,7 +67,7 @@ class MoveTo_node():
             # publish
             self._jang_pub.publish(goal_msg_)
             # wait for movement to finish
-            sleep(req.ur_state[-1]);
+            sleep(req.ur_state[-1])
             while True:
                 status_msg_ = rospy.wait_for_message(
                     'follow_joint_trajectory/status', GoalStatusArray).status_list[0]
@@ -71,6 +80,12 @@ class MoveTo_node():
         else: sleep(0.5) # opening
         
         return []
+        
+    def _m2p_cb(self, req):
+        return self._m2_cb(req, 'p')
+        
+    def _m2j_cb(self, req):
+        return self._m2_cb(req, 'j')
         
 if __name__ == '__main__':
     m2_node_ = MoveTo_node()
