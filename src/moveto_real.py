@@ -3,7 +3,7 @@
 import rospy
 from james_ur_kinematics.srv import *
 from geometry_msgs.msg import Pose, Point, Quaternion
-from std_msgs.msg import Float32MultiArray, Bool
+from std_msgs.msg import Bool
 
 from control_msgs.msg import FollowJointTrajectoryActionGoal
 from trajectory_msgs.msg import JointTrajectoryPoint
@@ -12,7 +12,7 @@ from actionlib_msgs.msg import GoalStatusArray
 from time import time, sleep
 
 JOINT_NAMES = [ 'shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
-    'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
+    'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint' ]
 
 class MoveTo_node():
     def __init__(self):
@@ -58,7 +58,7 @@ class MoveTo_node():
                 # append
                 goal_msg_.goal.trajectory.points[i].positions = jangs_
                 tfs_ = rospy.Duration((i + 1) * time_per_step_)
-                goal_msg_.goal.trajectory.points[0].time_from_start = tfs_
+                goal_msg_.goal.trajectory.points[i].time_from_start = tfs_
                 
             # final state stuff
             goal_msg_.goal.trajectory.points[-1].velocities = [ 0.0 ] * 6

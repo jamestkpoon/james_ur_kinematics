@@ -2,7 +2,7 @@
 
 import rospy
 from james_ur_kinematics.srv import *
-from std_msgs.msg import Float32MultiArray, Bool
+from std_msgs.msg import Float64MultiArray, Bool
 
 from time import time, sleep
 
@@ -13,7 +13,7 @@ class MoveTo_node():
         rospy.wait_for_service('/ur5_kin/IK')
         self._ik = rospy.ServiceProxy('/ur5_kin/IK', IK)
         self._jang_pub = rospy.Publisher('ur5/command/joint_positions',
-            Float32MultiArray, queue_size=1)
+            Float64MultiArray, queue_size=1)
         self._gripper_pub = rospy.Publisher('ur5/command/gripper', Bool, queue_size=1)
         sleep(1.0); self._ur_mov_timeout = 0.5; self._ur_mov_param = 'ur5/moving'
         
@@ -37,9 +37,11 @@ class MoveTo_node():
             jangs_ = self._ik(ik_req_).joint_angles[:6]
         else: jangs_ = req.ur_state
         
+#        print(jangs_)
+        
         # operate joints
         if (len(jangs_) > 0):
-            self._jang_pub.publish(Float32MultiArray(data=jangs_))
+            self._jang_pub.publish(Float64MultiArray(data=jangs_))
             t_ = time(); mov_ = False
             while ((time()-t_) < self._ur_mov_timeout) and not mov_:
                 sleep(0.01); mov_ = rospy.get_param(self._ur_mov_param)
@@ -47,7 +49,7 @@ class MoveTo_node():
         
         # operate gripper
         self._gripper_pub.publish(Bool(data=req.gripper_state))
-        if req.gripper_state: sleep(2.0) # closing
+        if req.gripper_state: sleep(5.0) # closing
         else: sleep(0.5) # opening
         
         return []

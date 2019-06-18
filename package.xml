@@ -61,6 +61,10 @@
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>ur_kinematics</exec_depend>
 
+  <build_depend>control_msgs</build_depend>
+  <build_export_depend>control_msgs</build_export_depend>
+  <exec_depend>control_msgs</exec_depend>
+
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

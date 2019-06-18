@@ -1,6 +1,6 @@
 <launch>
 
-    <node pkg="tf" type="static_transform_publisher" name="world_ur_tf" args="0 0 0.0 0 0 0 world ur5_base_link 100" />
+    <node pkg="tf" type="static_transform_publisher" name="world_ur_tf" args="0 0 0 0 0 0 world ur5_base_link 100" />
     <node pkg="tf" type="static_transform_publisher" name="gripper_ee_tf1" args="0 0 0 -1.5708 -1.5708 0 gripper_link gripper_link_ 100" />
     <node pkg="tf" type="static_transform_publisher" name="gripper_ee_tf2" args="0 0 0.215 1.5708 -1.5708 0 gripper_link gripper_ee 100" />
     
