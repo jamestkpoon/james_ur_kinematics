@@ -2,6 +2,9 @@
 #include <james_ur_kinematics/FK.h>
 #include <james_ur_kinematics/IK.h>
 
+#include <std_msgs/Float64MultiArray.h>
+#include <control_msgs/FollowJointTrajectoryActionGoal.h>
+
 #include <tf/transform_listener.h>
 
 #include <ur_kinematics/ur_kin.h>
@@ -10,6 +13,8 @@
 
 using namespace james_ur_kinematics;
 using namespace Eigen;
+
+
 
 //// joint angle adjustments for differing 0 position definitions
 
@@ -43,7 +48,9 @@ void jangs_to_ext(std::vector<double>& vec, const int nr)
   normalize_angles(vec);
 }
 
-//// static transforms for fixed-base UR
+
+
+//// kinematics
 
 tf::StampedTransform world_robot_stf;
 tf::Transform world_robot_istf, gripper_ee_stf, gripper_ee_istf;
@@ -60,8 +67,6 @@ void get_robot_j6_TF(tf::Transform& rj6_tf, const geometry_msgs::Pose& pose)
   rj6_tf = world_robot_istf * (world_ee_tf_ * gripper_ee_istf);
 }
 
-//// FK
-
 bool fwd_svc(FK::Request& req, FK::Response& res)
 {
   // apply ur_kinematics -> VREP angular origin offsets
@@ -76,8 +81,6 @@ bool fwd_svc(FK::Request& req, FK::Response& res)
 
   return 1;
 }
-
-//// IK
 
 bool inv_svc(IK::Request& req, IK::Response& res)
 {
@@ -97,6 +100,53 @@ bool inv_svc(IK::Request& req, IK::Response& res)
   
   return 1;
 }
+
+//// joint adjustments CBs
+
+ros::Subscriber jang_adj_sub_;
+ros::Publisher jang_adj_pub_;
+
+const std::vector<std::string> UR5_joint_names = { "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
+    "wrist_1_joint", "wrist_2_joint", "wrist_3_joint" };
+
+void jang_adj_cb_vrep(const std_msgs::Float64MultiArray& msg)
+{
+  // adjust joint angles
+  std_msgs::Float64MultiArray msg_out_ = msg;
+  jangs_to_ext(msg_out_.data, (int)msg.data.size() / 6);
+  
+  // publish
+  jang_adj_pub_.publish(msg_out_);
+}
+
+void jang_adj_cb_real(const std_msgs::Float64MultiArray& msg)
+{
+  // adjust joint angles
+  std::vector<double> jangs_ = msg.data;
+  int nr_= ((int)jangs_.size()-1) / 6;
+  double t_per_step_ = msg.data.back() / nr_;
+  jangs_.erase(jangs_.end()-1); jangs_to_ext(jangs_, nr_);
+  
+  // publish
+  control_msgs::FollowJointTrajectoryActionGoal msg_out_;
+  msg_out_.goal.trajectory.joint_names = UR5_joint_names;
+  msg_out_.goal.trajectory.points.resize(nr_);
+  
+  double end_t_ = t_per_step_;
+  for(int i=0; i<nr_; i++)
+  {
+    for(int j=0; j<6; j++)
+      msg_out_.goal.trajectory.points[i].positions[j] = jangs_[i*6+j];
+    msg_out_.goal.trajectory.points[i].time_from_start = ros::Duration(end_t_);
+    end_t_ += t_per_step_;
+  }
+  msg_out_.goal.trajectory.points.back().velocities = std::vector<double>(0.0, 6);
+  msg_out_.goal.trajectory.points.back().accelerations = std::vector<double>(0.0, 6);
+  
+  jang_adj_pub_.publish(msg_out_);
+}
+
+
 
 int main(int argc, char**argv)
 {
@@ -119,19 +169,23 @@ int main(int argc, char**argv)
     {
       double jofs_[6] = { -M_PI/2, M_PI/2, 0.0, M_PI/2, 0.0, -M_PI/2 };
       ext_joint_offsets = std::vector<double>(jofs_, jofs_+6);
+      jang_adj_sub_ = nh_.subscribe("/ur5_kin/jang_adj_i", 1, &jang_adj_cb_vrep);
+      jang_adj_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/ur5/command/joint_positions", 1);
       break;
     }
     case 2: // real with cable oriented at -PI/4
     {
       double jofs_[6] = { M_PI/4, 0.0, 0.0, 0.0, 0.0, 0.0 };
       ext_joint_offsets = std::vector<double>(jofs_, jofs_+6);
+      jang_adj_sub_ = nh_.subscribe("/ur5_kin/jang_adj_i", 1, &jang_adj_cb_real);
+      jang_adj_pub_ = nh_.advertise<control_msgs::FollowJointTrajectoryActionGoal>("/follow_joint_trajectory/goal", 1);
       break;
     }
     default: ext_joint_offsets = std::vector<double>(6, 0.0);
   }
   
   ros::ServiceServer fwd_srv_ = nh_.advertiseService("/ur5_kin/FK", &fwd_svc),
-    inv_srv_ = nh_.advertiseService("/ur5_kin/IK", &inv_svc);  
+    inv_srv_ = nh_.advertiseService("/ur5_kin/IK", &inv_svc);
     
   ros::spin();
   
