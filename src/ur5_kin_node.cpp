@@ -123,9 +123,11 @@ void jang_adj_cb_real(const std_msgs::Float64MultiArray& msg)
 {
   // adjust joint angles
   std::vector<double> jangs_ = msg.data;
-  int nr_= ((int)jangs_.size()-1) / 6;
-  double t_per_step_ = msg.data.back() / nr_;
-  jangs_.erase(jangs_.end()-1); jangs_to_ext(jangs_, nr_);
+//  int nr_= ((int)jangs_.size()-1) / 6;
+//  double t_per_step_ = msg.data.back() / nr_;
+//  jangs_.erase(jangs_.end()-1); //jangs_to_ext(jangs_, nr_);
+  int nr_= (int)jangs_.size() / 6;
+  double t_per_step_ = 1.0;
   
   // publish
   control_msgs::FollowJointTrajectoryActionGoal msg_out_;
@@ -135,13 +137,15 @@ void jang_adj_cb_real(const std_msgs::Float64MultiArray& msg)
   double end_t_ = t_per_step_;
   for(int i=0; i<nr_; i++)
   {
+    msg_out_.goal.trajectory.points[i].positions.resize(6);
     for(int j=0; j<6; j++)
       msg_out_.goal.trajectory.points[i].positions[j] = jangs_[i*6+j];
+      
     msg_out_.goal.trajectory.points[i].time_from_start = ros::Duration(end_t_);
     end_t_ += t_per_step_;
   }
-  msg_out_.goal.trajectory.points.back().velocities = std::vector<double>(0.0, 6);
-  msg_out_.goal.trajectory.points.back().accelerations = std::vector<double>(0.0, 6);
+  msg_out_.goal.trajectory.points.back().velocities = std::vector<double>(6, 0.0);
+  msg_out_.goal.trajectory.points.back().accelerations = std::vector<double>(6, 0.0);
   
   jang_adj_pub_.publish(msg_out_);
 }
